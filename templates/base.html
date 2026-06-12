@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>{% block title %}Scotch &amp; Bourbon{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            amber: { 50:'#fffbeb',100:'#fef3c7',200:'#fde68a',300:'#fcd34d',400:'#fbbf24',500:'#f59e0b',600:'#d97706',700:'#b45309',800:'#92400e',900:'#78350f' }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Segoe UI', system-ui, sans-serif; }
+    .toast { position:fixed; bottom:1.5rem; right:1.5rem; z-index:9999; }
+    .badge-sealed   { background:#dbeafe; color:#1e40af; }
+    .badge-opened   { background:#fef3c7; color:#92400e; }
+    .badge-finished { background:#f3f4f6; color:#374151; }
+  </style>
+</head>
+<body class="bg-amber-50 min-h-screen">
+
+<!-- Navbar -->
+<nav class="bg-amber-900 text-white shadow-lg">
+  <div class="max-w-7xl mx-auto px-4 flex items-center justify-between h-14">
+    <a href="/" class="flex items-center gap-2 font-bold text-lg tracking-wide hover:text-amber-200 transition">
+      🥃 Scotch &amp; Bourbon
+    </a>
+    <div class="flex items-center gap-1 text-sm">
+      <a href="/" class="px-3 py-1.5 rounded hover:bg-amber-800 transition {% if request.url.path == '/' %}bg-amber-800{% endif %}">Dashboard</a>
+      <a href="/inventory" class="px-3 py-1.5 rounded hover:bg-amber-800 transition {% if '/inventory' in request.url.path %}bg-amber-800{% endif %}">Cellar</a>
+      <a href="/wishlist" class="px-3 py-1.5 rounded hover:bg-amber-800 transition {% if '/wishlist' in request.url.path %}bg-amber-800{% endif %}">Wish List</a>
+      {% if user and user.is_admin %}
+      <div class="relative group">
+        <button class="px-3 py-1.5 rounded hover:bg-amber-800 transition flex items-center gap-1">Admin ▾</button>
+        <div class="absolute right-0 top-full mt-1 bg-white text-gray-800 rounded shadow-lg min-w-40 hidden group-hover:block z-50">
+          <a href="/admin/scanner" class="block px-4 py-2 hover:bg-amber-50 text-sm">📷 Scanner</a>
+          <a href="/admin/users" class="block px-4 py-2 hover:bg-amber-50 text-sm">👥 Users</a>
+          <a href="/admin/trash" class="block px-4 py-2 hover:bg-amber-50 text-sm">🗑️ Trash</a>
+        </div>
+      </div>
+      {% endif %}
+      <form method="post" action="/logout" class="ml-2">
+        <button type="submit" class="px-3 py-1.5 rounded bg-amber-700 hover:bg-amber-600 transition text-sm">Logout</button>
+      </form>
+    </div>
+  </div>
+</nav>
+
+<!-- Flash / Toast notifications -->
+<div id="toast-container" class="toast flex flex-col gap-2"></div>
+
+<main class="max-w-7xl mx-auto px-4 py-6">
+  {% block content %}{% endblock %}
+</main>
+
+<script>
+function showToast(msg, type='success') {
+  const c = document.getElementById('toast-container');
+  const t = document.createElement('div');
+  const colors = type === 'success' ? 'bg-green-600' : type === 'error' ? 'bg-red-600' : 'bg-blue-600';
+  t.className = `${colors} text-white px-4 py-2 rounded shadow-lg text-sm max-w-xs`;
+  t.textContent = msg;
+  c.appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+}
+
+async function apiFetch(url, opts={}) {
+  const r = await fetch(url, {credentials:'same-origin', ...opts});
+  if (!r.ok) {
+    const err = await r.json().catch(() => ({detail: 'Request failed'}));
+    throw new Error(err.detail || r.statusText);
+  }
+  return r.json().catch(() => null);
+}
+
+function confirm_action(msg) {
+  return confirm(msg);
+}
+</script>
+
+{% block scripts %}{% endblock %}
+</body>
+</html>

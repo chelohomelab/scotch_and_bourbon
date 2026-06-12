@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Dashboard – Scotch &amp; Bourbon{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+  <h1 class="text-2xl font-bold text-amber-900">The Cellar</h1>
+  <p class="text-gray-500 text-sm">Your whiskey collection at a glance</p>
+</div>
+
+<!-- Stats row -->
+<div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 mb-8">
+  {% set stats = [
+    ('Total Bottles', total, '🍾', 'amber'),
+    ('Sealed', sealed, '🔒', 'blue'),
+    ('Opened', opened, '🥃', 'yellow'),
+    ('Finished', finished, '📭', 'gray'),
+    ('Wish List', wishlist_count, '⭐', 'purple'),
+    ('Liked', liked, '❤️', 'red'),
+    ('Buy Again', buy_again, '🛒', 'green'),
+  ] %}
+  {% for label, count, icon, color in stats %}
+  <div class="bg-white rounded-xl shadow-sm p-4 text-center border border-amber-100">
+    <div class="text-2xl mb-1">{{ icon }}</div>
+    <div class="text-2xl font-bold text-amber-900">{{ count }}</div>
+    <div class="text-xs text-gray-500 mt-0.5">{{ label }}</div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="grid md:grid-cols-2 gap-6">
+  <!-- Type breakdown -->
+  <div class="bg-white rounded-xl shadow-sm border border-amber-100 p-5">
+    <h2 class="font-semibold text-amber-900 mb-4">By Type</h2>
+    {% if type_counts %}
+    <div class="space-y-2">
+      {% for wtype, count in type_counts.items() %}
+      <div class="flex items-center gap-2">
+        <div class="text-sm text-gray-700 w-48 truncate">{{ wtype }}</div>
+        <div class="flex-1 bg-amber-100 rounded-full h-2">
+          <div class="bg-amber-600 h-2 rounded-full" style="width:{{ [(count / total * 100)|int, 100]|min }}%"></div>
+        </div>
+        <div class="text-sm font-medium text-amber-800 w-6 text-right">{{ count }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-gray-400 text-sm">No bottles yet. <a href="/inventory" class="text-amber-600 underline">Add one!</a></p>
+    {% endif %}
+  </div>
+
+  <!-- Recent additions -->
+  <div class="bg-white rounded-xl shadow-sm border border-amber-100 p-5">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="font-semibold text-amber-900">Recently Added</h2>
+      <a href="/inventory" class="text-xs text-amber-600 hover:underline">View all →</a>
+    </div>
+    {% if recent %}
+    <div class="space-y-2">
+      {% for b in recent %}
+      <a href="/bottle/{{ b.id }}" class="flex items-center gap-3 hover:bg-amber-50 rounded-lg p-1.5 transition">
+        {% if b.image_path_1 %}
+        <img src="/{{ b.image_path_1 }}" class="w-10 h-10 object-cover rounded-lg flex-shrink-0"/>
+        {% else %}
+        <div class="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center text-lg flex-shrink-0">🍶</div>
+        {% endif %}
+        <div class="min-w-0 flex-1">
+          <div class="text-sm font-medium text-gray-800 truncate">{{ b.brand }} {{ b.name or '' }}</div>
+          <div class="text-xs text-gray-400">{{ b.whiskey_type or 'Whiskey' }} {% if b.age_statement %}· {{ b.age_statement }}yr{% endif %}</div>
+        </div>
+        <span class="text-xs px-2 py-0.5 rounded-full flex-shrink-0 badge-{{ b.status }}">{{ b.status }}</span>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-gray-400 text-sm">Your cellar is empty. Time to stock it up!</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

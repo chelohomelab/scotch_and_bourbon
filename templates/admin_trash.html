@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Trash – Scotch &amp; Bourbon{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+  <h1 class="text-2xl font-bold text-amber-900">Trash</h1>
+  <p class="text-gray-500 text-sm">Restore or permanently delete items</p>
+</div>
+
+<div id="trash-container" class="space-y-3">
+  <div class="text-center py-8 text-gray-400">Loading…</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function loadTrash() {
+  const container = document.getElementById('trash-container');
+  try {
+    const data = await apiFetch('/admin/trash-items');
+    const bottles = data.bottles || [];
+    if (!bottles.length) {
+      container.innerHTML = '<div class="text-center py-8 text-gray-400">🗑️ Trash is empty.</div>';
+      return;
+    }
+    container.innerHTML = '';
+    const section = document.createElement('div');
+    section.innerHTML = `<h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">Bottles (${bottles.length})</h2>`;
+    const grid = document.createElement('div');
+    grid.className = 'grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3';
+    bottles.forEach(b => {
+      const card = document.createElement('div');
+      card.id = `trash-bottle-${b.id}`;
+      card.className = 'bg-white rounded-xl border border-red-100 p-3 flex gap-3 items-start';
+      card.innerHTML = `
+        ${b.image ? `<img src="/${b.image}" class="w-12 h-12 object-cover rounded-lg flex-shrink-0"/>` : '<div class="w-12 h-12 bg-amber-50 rounded-lg flex items-center justify-center text-xl flex-shrink-0">🍶</div>'}
+        <div class="flex-1 min-w-0">
+          <div class="text-sm font-medium text-gray-800 truncate">${b.label}</div>
+          <div class="text-xs text-gray-400">${b.whiskey_type || ''}</div>
+          <div class="flex gap-2 mt-2">
+            <button onclick="restoreBottle(${b.id})" class="text-xs bg-amber-100 hover:bg-amber-200 text-amber-800 px-2 py-1 rounded">Restore</button>
+            <button onclick="permaDeleteBottle(${b.id})" class="text-xs bg-red-100 hover:bg-red-200 text-red-700 px-2 py-1 rounded">Delete</button>
+          </div>
+        </div>
+      `;
+      grid.appendChild(card);
+    });
+    section.appendChild(grid);
+    container.appendChild(section);
+  } catch(e) {
+    container.innerHTML = `<div class="text-center py-8 text-red-400">Error loading trash: ${e.message}</div>`;
+  }
+}
+
+async function restoreBottle(id) {
+  try {
+    await apiFetch(`/bottles/${id}/restore/`, {method:'POST'});
+    document.getElementById(`trash-bottle-${id}`).remove();
+    showToast('Restored');
+  } catch(e) { showToast(e.message, 'error'); }
+}
+
+async function permaDeleteBottle(id) {
+  if (!confirm('Permanently delete? This cannot be undone.')) return;
+  try {
+    await apiFetch(`/admin/trash/bottles/${id}`, {method:'DELETE'});
+    document.getElementById(`trash-bottle-${id}`).remove();
+    showToast('Permanently deleted');
+  } catch(e) { showToast(e.message, 'error'); }
+}
+
+loadTrash();
+</script>
+{% endblock %}
