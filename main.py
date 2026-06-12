@@ -8,7 +8,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from config import APP_NAME, APP_VERSION
 from database import SessionLocal, UserSession, User, init_db
-from routers import auth, pages, bottles, tastings, wishlist, barcode, admin, scanner, settings
+from routers import auth, pages, bottles, tastings, wishlist, barcode, admin, settings
 
 app = FastAPI(title=APP_NAME, version=APP_VERSION)
 
@@ -65,5 +65,4 @@ app.include_router(tastings.router)
 app.include_router(wishlist.router)
 app.include_router(barcode.router)
 app.include_router(admin.router)
-app.include_router(scanner.router)
 app.include_router(settings.router)

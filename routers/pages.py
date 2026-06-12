@@ -119,19 +119,6 @@ async def wishlist_page(request: Request, db: Session = Depends(get_db)):
     })
 
 
-@router.get("/admin/scanner", response_class=HTMLResponse)
-async def scanner_page(request: Request, db: Session = Depends(get_db)):
-    if not getattr(request.state, "user", None) or not request.state.user.is_admin:
-        from fastapi import HTTPException
-        raise HTTPException(403, "Admin required")
-    return templates.TemplateResponse("scanner.html", {
-        "request": request,
-        "user": request.state.user,
-        "whiskey_types": WHISKEY_TYPES,
-        "regions": REGIONS,
-    })
-
-
 @router.get("/admin/users", response_class=HTMLResponse)
 async def admin_users_page(request: Request, db: Session = Depends(get_db)):
     if not getattr(request.state, "user", None) or not request.state.user.is_admin:

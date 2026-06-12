@@ -93,28 +93,6 @@ class UpcCache(Base):
     updated_at = Column(String)
 
 
-class ScannerEntry(Base):
-    __tablename__ = "scanner_entries"
-
-    id = Column(Integer, primary_key=True, index=True)
-    upc = Column(String)
-    title = Column(String)
-    brand = Column(String)
-    name = Column(String)
-    whiskey_type = Column(String)
-    region = Column(String)
-    age_statement = Column(Integer)
-    abv = Column(Float)
-    volume_ml = Column(Integer)
-    notes = Column(Text)
-    image_path_1 = Column(String)
-    image_path_2 = Column(String)
-    image_path_3 = Column(String)
-    data_json = Column(Text)
-    created_at = Column(String)
-    is_reviewed = Column(Boolean, default=False)
-
-
 class User(Base):
     __tablename__ = "users"
 
