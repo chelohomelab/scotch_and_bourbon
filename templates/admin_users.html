@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block title %}Users – Scotch &amp; Bourbon{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-4">
+  <h1 class="text-2xl font-bold text-amber-900">User Management</h1>
+  <button onclick="document.getElementById('add-user-modal').classList.remove('hidden')"
+    class="bg-amber-800 hover:bg-amber-700 text-white text-sm px-4 py-2 rounded-lg">+ Add User</button>
+</div>
+
+<div class="bg-white rounded-xl border border-amber-100 shadow-sm overflow-hidden">
+  <table class="w-full text-sm">
+    <thead class="bg-amber-50 border-b">
+      <tr>
+        <th class="text-left px-4 py-3 text-gray-600">Username</th>
+        <th class="text-left px-4 py-3 text-gray-600">Email</th>
+        <th class="text-center px-4 py-3 text-gray-600">Admin</th>
+        <th class="text-center px-4 py-3 text-gray-600">Active</th>
+        <th class="px-4 py-3"></th>
+      </tr>
+    </thead>
+    <tbody class="divide-y">
+      {% for u in users %}
+      <tr id="user-row-{{ u.id }}">
+        <td class="px-4 py-3 font-medium text-gray-800">{{ u.username }}</td>
+        <td class="px-4 py-3 text-gray-500">{{ u.email or '—' }}</td>
+        <td class="px-4 py-3 text-center">
+          <button onclick="toggleAdmin({{ u.id }}, {{ 'true' if u.is_admin else 'false' }})"
+            class="text-lg {% if u.id == user.id %}cursor-default opacity-50{% endif %}"
+            {% if u.id == user.id %}disabled{% endif %}>
+            {{ '✅' if u.is_admin else '⬜' }}
+          </button>
+        </td>
+        <td class="px-4 py-3 text-center">
+          <button onclick="toggleActive({{ u.id }}, {{ 'true' if u.is_active else 'false' }})"
+            class="text-lg {% if u.id == user.id %}cursor-default opacity-50{% endif %}"
+            {% if u.id == user.id %}disabled{% endif %}>
+            {{ '✅' if u.is_active else '⬜' }}
+          </button>
+        </td>
+        <td class="px-4 py-3 text-right">
+          {% if u.id != user.id %}
+          <button onclick="deleteUser({{ u.id }})" class="text-xs text-red-400 hover:text-red-600 border border-red-200 px-2 py-1 rounded">Delete</button>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Add user modal -->
+<div id="add-user-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
+    <div class="flex items-center justify-between p-5 border-b">
+      <h2 class="font-bold text-amber-900">Create User</h2>
+      <button onclick="document.getElementById('add-user-modal').classList.add('hidden')" class="text-gray-400 text-xl">✕</button>
+    </div>
+    <form id="add-user-form" class="p-5 space-y-3">
+      <div>
+        <label class="text-xs font-medium text-gray-600 mb-1 block">Username</label>
+        <input type="text" name="username" required minlength="3" class="w-full border rounded-lg px-3 py-2 text-sm"/>
+      </div>
+      <div>
+        <label class="text-xs font-medium text-gray-600 mb-1 block">Email</label>
+        <input type="email" name="email" class="w-full border rounded-lg px-3 py-2 text-sm"/>
+      </div>
+      <div>
+        <label class="text-xs font-medium text-gray-600 mb-1 block">Password</label>
+        <input type="password" name="password" required minlength="8" class="w-full border rounded-lg px-3 py-2 text-sm"/>
+      </div>
+      <label class="flex items-center gap-2 text-sm cursor-pointer">
+        <input type="checkbox" name="is_admin" value="1" class="accent-amber-600"/> Admin
+      </label>
+      <div class="flex gap-2">
+        <button type="submit" class="flex-1 bg-amber-800 text-white py-2 rounded-lg text-sm font-medium">Create</button>
+        <button type="button" onclick="document.getElementById('add-user-modal').classList.add('hidden')" class="px-4 border rounded-lg text-sm text-gray-600">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function toggleAdmin(id, current) {
+  try {
+    await apiFetch(`/admin/users/${id}`, {
+      method:'PATCH', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({is_admin: !current}),
+    });
+    showToast('Updated');
+    setTimeout(() => location.reload(), 400);
+  } catch(e) { showToast(e.message, 'error'); }
+}
+
+async function toggleActive(id, current) {
+  try {
+    await apiFetch(`/admin/users/${id}`, {
+      method:'PATCH', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({is_active: !current}),
+    });
+    showToast('Updated');
+    setTimeout(() => location.reload(), 400);
+  } catch(e) { showToast(e.message, 'error'); }
+}
+
+async function deleteUser(id) {
+  if (!confirm('Delete this user?')) return;
+  try {
+    await apiFetch(`/admin/users/${id}`, {method:'DELETE'});
+    document.getElementById(`user-row-${id}`).remove();
+    showToast('Deleted');
+  } catch(e) { showToast(e.message, 'error'); }
+}
+
+document.getElementById('add-user-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  try {
+    await apiFetch('/admin/users/', {method:'POST', body:fd});
+    showToast('User created');
+    setTimeout(() => location.reload(), 500);
+  } catch(err) { showToast(err.message, 'error'); }
+});
+</script>
+{% endblock %}
