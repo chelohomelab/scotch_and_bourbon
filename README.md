@@ -2,7 +2,7 @@
 
 A self-hosted whiskey cellar tracker for your personal collection.
 
-**Stack:** FastAPI · SQLite · Jinja2 · Tailwind CSS · Docker
+**Stack:** FastAPI · SQLite · Jinja2 · Tailwind CSS
 
 ---
 
@@ -13,30 +13,17 @@ A self-hosted whiskey cellar tracker for your personal collection.
 | Bottle inventory | All whiskey types: Single Malt Scotch, Blended Scotch, Bourbon, Rye, Irish, Japanese, Canadian, and more |
 | Status tracking | Sealed → Opened → Finished per bottle |
 | Verdict system | Liked ❤️ and Buy Again 🛒 per bottle |
-| Tasting notes | Nose / Palate / Finish / Overall with 1–10 rating |
-| Barcode scanning | UPC lookup via UPC Item DB + Open Food Facts fallback |
-| Admin scanner queue | Batch scan, autofill, commit to cellar |
-| Wish list | Track wanted bottles with priority and one-click convert |
+| Tasting notes | Nose / Palate / Finish / Overall with 1–10 rating per session |
+| Barcode lookup | UPC scan autofills brand, type, age, ABV, region, and volume |
+| Wish list | Track wanted bottles with priority and one-click convert to cellar |
 | Photo management | 2 image slots per bottle with swap |
-| Dashboard | Stats and type breakdown |
-| Multi-user | Cookie-based sessions, admin panel |
+| Dashboard | Stats by status and type breakdown |
+| Multi-user | Cookie-based sessions, remember-me, admin panel |
 | Soft delete | Trash with restore / permanent delete |
 
 ---
 
-## Quick Start
-
-### Docker (recommended)
-
-```bash
-git clone <repo-url> scotch-and-bourbon
-cd scotch-and-bourbon
-docker compose up -d
-```
-
-Visit **http://localhost:8000** — you'll be directed to `/setup` on first run to create your admin account.
-
-### Local development
+## Local Development
 
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
@@ -44,68 +31,115 @@ pip install -r requirements.txt
 uvicorn main:app --reload
 ```
 
+Visit **http://localhost:8000** — you'll be sent to `/setup` on first run to create your admin account.
+
 ---
 
 ## Proxmox LXC Deployment
 
-Two options are available via `proxmox-setup.sh`:
+Deployment uses native Python + systemd inside an **unprivileged** LXC container. No Docker required.
 
-### Option 1 — Docker (privileged LXC required)
+### First-Time Install
 
-1. Create a **privileged** Debian/Ubuntu LXC container in Proxmox
-2. Copy `proxmox-setup.sh` to the container and run it as root:
+1. Create a Debian or Ubuntu LXC container in Proxmox (unprivileged is fine)
+2. Start the container and open a root shell
+3. Copy the application files into the container:
    ```bash
-   bash proxmox-setup.sh   # choose option 1
+   # From your workstation:
+   rsync -av /home/chelo/Scotch_and_Bourbon/ root@<lxc-ip>:/opt/scotch-and-bourbon/
    ```
-3. Open port 8000 in your network/firewall
-
-### Option 2 — Native Python + systemd (unprivileged LXC)
-
-1. Create any Debian/Ubuntu LXC container
-2. Copy your application files to `/opt/scotch-and-bourbon`
-3. Run the setup script:
+4. Run the setup script inside the container:
    ```bash
-   bash proxmox-setup.sh   # choose option 2
+   bash /opt/scotch-and-bourbon/proxmox-setup.sh
    ```
-4. Service name: `scotch-and-bourbon`
+5. On first boot, visit `http://<lxc-ip>:8000/setup` to create your admin account
 
-**Useful service commands:**
+The script creates a dedicated `cellar` system user, a Python virtual environment, and registers the app as a systemd service that starts on boot.
+
+### Prepare the LXC Container (run once after creation)
+
+Before running the setup script, do a full system update and configure SSH root access:
+
 ```bash
-systemctl status scotch-and-bourbon
+# 1. Update and upgrade the container
+apt-get update && apt-get upgrade -y
+
+# 2. Allow SSH login as root
+sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config
+
+# 3. Set a root password (if not already set)
+passwd root
+
+# 4. Restart SSH to apply the change
+systemctl restart ssh
+```
+
+You can now SSH in from your workstation:
+```bash
+ssh root@<lxc-ip>
+```
+
+Or use key-based auth (recommended) — set `PermitRootLogin prohibit-password` instead and add your public key:
+```bash
+mkdir -p /root/.ssh
+echo "<your-public-key>" >> /root/.ssh/authorized_keys
+chmod 700 /root/.ssh && chmod 600 /root/.ssh/authorized_keys
+```
+
+### Updating
+
+Re-run the same script — it detects the service is already installed and switches to update mode automatically: pulls code (if git), reinstalls dependencies, and restarts the service.
+
+```bash
+bash /opt/scotch-and-bourbon/proxmox-setup.sh
+```
+
+Or manually:
+```bash
+# pull new code first, then:
 systemctl restart scotch-and-bourbon
-journalctl -u scotch-and-bourbon -f
+```
+
+### Service Commands
+
+```bash
+systemctl status  scotch-and-bourbon
+systemctl restart scotch-and-bourbon
+systemctl stop    scotch-and-bourbon
+journalctl -u     scotch-and-bourbon -f
 ```
 
 ---
 
-## Data Persistence
+## Data
 
 | Path | Contents |
 |---|---|
 | `data/cellar.db` | SQLite database |
 | `static/uploads/` | Bottle photos and UPC cache images |
 
-When using Docker, both are mounted as volumes so data survives container rebuilds.
+Back these up to preserve your collection data across reinstalls.
 
 ---
 
 ## Barcode Lookup
 
-The UPC lookup pipeline:
-1. **Local cache** — `upc_cache` table (instant, populated on first lookup)
-2. **UPC Item DB** — Free API, covers most US spirits
-3. **Open Food Facts** — Open crowdsourced database, good fallback for international products
+When adding a bottle you can scan or type a UPC barcode. The lookup pipeline:
 
-Parsed fields from product titles:
-- Whiskey type (Single Malt, Bourbon, Rye, Irish, Japanese…)
+1. **Local cache** — `upc_cache` table; instant on repeat scans
+2. **UPC Item DB** — Free API, good coverage for US spirits
+3. **Open Food Facts** — Open crowdsourced database, broader international coverage
+
+Fields auto-populated from a successful lookup:
+- Whiskey type (Single Malt Scotch, Bourbon, Rye, Irish, Japanese…)
 - Age statement (12 Year, 18 Year, NAS)
-- ABV percentage
+- ABV %
 - Volume in ml
 - Region (Speyside, Islay, Highland, Kentucky…)
 
 ---
 
-## Whiskey Types Supported
+## Whiskey Types
 
 - Single Malt Scotch
 - Blended Scotch
@@ -123,7 +157,7 @@ Parsed fields from product titles:
 
 ## Default Port
 
-**8000** — change in `docker-compose.yml` or the systemd service if needed.
+**8000** — edit the `ExecStart` line in `/etc/systemd/system/scotch-and-bourbon.service` to change it, then `systemctl daemon-reload && systemctl restart scotch-and-bourbon`.
 
 ---
 
