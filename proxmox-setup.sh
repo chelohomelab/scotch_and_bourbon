@@ -25,10 +25,12 @@ fi
 echo "==> Mode: $MODE"
 echo ""
 
-# ── System packages (always ensure present) ────────────────────────────────────
+# ── System packages ────────────────────────────────────────────────────────────
+# gcc, python3-dev, libffi-dev are required to build bcrypt's C extension
+# when no prebuilt wheel is available for this platform.
 echo "==> Installing system packages…"
 apt-get update -qq
-apt-get install -y -qq python3 python3-pip python3-venv git
+apt-get install -y -qq python3 python3-pip python3-venv git gcc python3-dev libffi-dev
 
 # ── First-time install only ────────────────────────────────────────────────────
 if [ "$MODE" = "install" ]; then
@@ -39,7 +41,7 @@ if [ "$MODE" = "install" ]; then
   mkdir -p "$APP_DIR"/{data,static/uploads}
 fi
 
-# ── Code: pull if git repo exists, otherwise prompt to copy files ──────────────
+# ── Code ───────────────────────────────────────────────────────────────────────
 if [ -d "$APP_DIR/.git" ]; then
   echo "==> Pulling latest code…"
   git -C "$APP_DIR" pull
@@ -54,11 +56,24 @@ else
   echo "==> Application files found (no git repo — skipping pull)."
 fi
 
-# ── Python dependencies ────────────────────────────────────────────────────────
-echo "==> Syncing Python dependencies…"
+# ── Python virtual environment & dependencies ──────────────────────────────────
+echo "==> Creating/updating Python virtual environment…"
 python3 -m venv "$APP_DIR/.venv"
-"$APP_DIR/.venv/bin/pip" install --quiet --upgrade pip
-"$APP_DIR/.venv/bin/pip" install --quiet -r "$APP_DIR/requirements.txt"
+
+echo "==> Upgrading pip…"
+"$APP_DIR/.venv/bin/pip" install --upgrade pip
+
+echo "==> Installing dependencies…"
+"$APP_DIR/.venv/bin/pip" install -r "$APP_DIR/requirements.txt"
+
+# ── Verify the install worked before touching the service ──────────────────────
+if [ ! -x "$APP_DIR/.venv/bin/uvicorn" ]; then
+  echo ""
+  echo "ERROR: uvicorn was not installed correctly."
+  echo "       Check the pip output above for errors."
+  exit 1
+fi
+echo "==> uvicorn found at $APP_DIR/.venv/bin/uvicorn — OK"
 
 # ── File ownership ─────────────────────────────────────────────────────────────
 chown -R "$APP_USER:$APP_USER" "$APP_DIR"
