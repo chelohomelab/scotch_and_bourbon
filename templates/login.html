@@ -3,38 +3,74 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Login – Scotch &amp; Bourbon</title>
+  <title>Login – The Whiskey Vault</title>
+  <link rel="icon" type="image/png" href="/static/images/app-icon.png"/>
+  <link rel="apple-touch-icon" href="/static/images/app-icon.png"/>
+  <link rel="manifest" href="/static/manifest.json"/>
+  <meta name="theme-color" content="#0d0a07"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background-color: #0d0a07;
+      background-image: url('/static/images/background.png');
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+    }
+    @media (max-width: 640px) {
+      body {
+        background-image: url('/static/images/phone-background.png');
+        background-attachment: scroll;
+        background-position: center top;
+      }
+    }
+    .glass-card {
+      background: rgba(12, 9, 5, 0.92);
+      border: 1px solid #4a3520;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+    input:not([type=checkbox]) {
+      background-color: rgba(8, 6, 3, 0.88) !important;
+      color: #f0e0c0 !important;
+      border-color: #4a3520 !important;
+    }
+    input::placeholder { color: #7a5c38 !important; }
+    input:focus { outline: none; box-shadow: 0 0 0 2px rgba(200,146,42,0.5); }
+  </style>
 </head>
-<body class="bg-amber-900 min-h-screen flex items-center justify-center">
-  <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-sm">
+<body class="min-h-screen flex items-center justify-center p-4">
+  <div class="glass-card rounded-2xl shadow-2xl p-8 w-full max-w-sm">
     <div class="text-center mb-6">
-      <div class="text-5xl mb-2">🥃</div>
-      <h1 class="text-2xl font-bold text-amber-900">Scotch &amp; Bourbon</h1>
-      <p class="text-gray-500 text-sm mt-1">Your personal whiskey cellar</p>
+      <img src="/static/images/logo.png" alt="The Whiskey Vault" class="h-24 w-24 object-contain mx-auto mb-4"/>
+      <h1 class="text-2xl font-bold" style="color:#e8c060;">The Whiskey Vault</h1>
+      <p class="text-sm mt-1" style="color:#9a7850;">Your personal whiskey cellar</p>
     </div>
 
     {% if error %}
-    <div class="bg-red-50 border border-red-200 text-red-700 text-sm rounded px-3 py-2 mb-4">{{ error }}</div>
+    <div class="rounded px-3 py-2 mb-4 text-sm" style="background:rgba(120,30,30,0.4);border:1px solid #7a3030;color:#f08080;">{{ error }}</div>
     {% endif %}
 
     <form method="post" action="/login" class="space-y-4">
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+        <label class="block text-sm font-medium mb-1" style="color:#c8a060;">Username</label>
         <input type="text" name="username" required autofocus
-          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"/>
+          class="w-full border rounded-lg px-3 py-2 text-sm"/>
       </div>
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+        <label class="block text-sm font-medium mb-1" style="color:#c8a060;">Password</label>
         <input type="password" name="password" required
-          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"/>
+          class="w-full border rounded-lg px-3 py-2 text-sm"/>
       </div>
-      <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+      <label class="flex items-center gap-2 text-sm cursor-pointer" style="color:#9a7850;">
         <input type="checkbox" name="remember" value="1" class="rounded accent-amber-600"/>
         Remember me for 30 days
       </label>
       <button type="submit"
-        class="w-full bg-amber-800 hover:bg-amber-700 text-white font-semibold py-2 rounded-lg transition">
+        class="w-full font-semibold py-2 rounded-lg transition hover:opacity-90"
+        style="background:#7a4e10;color:#f0e0c0;border:1px solid #9a6820;">
         Sign In
       </button>
     </form>

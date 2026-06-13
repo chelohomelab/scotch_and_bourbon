@@ -5,7 +5,8 @@
 
 set -euo pipefail
 
-APP_DIR="/opt/scotch-and-bourbon"
+REPO_URL="https://github.com/chelohomelab/scotch_and_bourbon.git"
+APP_DIR="/opt/scotch_and_bourbon"
 APP_PORT="8000"
 APP_USER="cellar"
 SERVICE="scotch-and-bourbon"
@@ -46,14 +47,8 @@ if [ -d "$APP_DIR/.git" ]; then
   echo "==> Pulling latest code…"
   git -C "$APP_DIR" pull
 else
-  if [ ! -f "$APP_DIR/main.py" ]; then
-    echo ""
-    echo "ERROR: No application files found in $APP_DIR."
-    echo "       Copy them first, then re-run this script:"
-    echo "       rsync -av /path/to/scotch-and-bourbon/ $APP_DIR/"
-    exit 1
-  fi
-  echo "==> Application files found (no git repo — skipping pull)."
+  echo "==> Cloning repository…"
+  git clone "$REPO_URL" "$APP_DIR"
 fi
 
 # ── Python virtual environment & dependencies ──────────────────────────────────

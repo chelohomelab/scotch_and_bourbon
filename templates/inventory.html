@@ -102,7 +102,36 @@
       <h2 class="font-bold text-amber-900 text-lg">Add Bottle</h2>
       <button onclick="document.getElementById('add-modal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600 text-xl">✕</button>
     </div>
-    <form id="add-form" enctype="multipart/form-data" class="p-5 space-y-4">
+    <form id="add-form" enctype="multipart/form-data" class="p-4 sm:p-5 space-y-3">
+
+      <!-- ── UPC + Camera ────────────────────────────────────── -->
+      <div class="rounded-xl p-3" style="background:rgba(200,146,42,0.08);border:1px solid #4a3520;">
+        <div class="text-xs font-semibold mb-2" style="color:#e8c060;">Scan Barcode / Add Photo</div>
+        <div class="flex gap-2 mb-2">
+          <input type="text" id="add-upc" name="upc" placeholder="Enter or scan UPC to auto-fill…"
+            class="flex-1 border rounded-lg px-3 py-2 text-sm min-w-0 focus:ring-2 focus:ring-amber-400"/>
+          <button type="button" onclick="autofillFromUpc()"
+            class="flex-shrink-0 px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap"
+            style="background:#c8922a;color:#0a0806;">🔍 Lookup</button>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <label class="flex items-center justify-center gap-1.5 cursor-pointer py-2.5 rounded-lg text-xs font-semibold hover:opacity-80 transition"
+            style="background:rgba(122,78,16,0.6);color:#f0e0c0;border:1px solid #7a4e10;">
+            📷 Take Photo
+            <input type="file" id="photo-camera" accept="image/*" capture="environment" class="hidden" onchange="previewPhoto(this)"/>
+          </label>
+          <label class="flex items-center justify-center gap-1.5 cursor-pointer py-2.5 rounded-lg text-xs font-semibold hover:opacity-80 transition"
+            style="background:rgba(40,28,16,0.8);color:#c8a060;border:1px solid #4a3520;">
+            🖼️ Gallery
+            <input type="file" id="photo-gallery" accept="image/*" class="hidden" onchange="previewPhoto(this)"/>
+          </label>
+        </div>
+        <div id="photo-preview" class="hidden mt-2 text-center">
+          <img id="photo-preview-img" class="h-28 rounded-lg object-cover mx-auto"/>
+          <div class="text-xs mt-1" style="color:#9a7850;">Photo ready</div>
+        </div>
+      </div>
+
       <div class="grid grid-cols-2 gap-3">
         <div class="col-span-2">
           <label class="block text-xs font-medium text-gray-600 mb-1">Brand <span class="text-red-500">*</span></label>
@@ -170,22 +199,9 @@
             <option value="finished">Finished</option>
           </select>
         </div>
-        <div>
-          <label class="block text-xs font-medium text-gray-600 mb-1">UPC Barcode</label>
-          <div class="flex gap-1">
-            <input type="text" name="upc" id="add-upc" placeholder="Scan or type…"
-              class="flex-1 border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-400"/>
-            <button type="button" onclick="autofillFromUpc()"
-              class="px-2 py-1.5 bg-amber-100 hover:bg-amber-200 rounded-lg text-xs font-medium text-amber-800">Lookup</button>
-          </div>
-        </div>
         <div class="col-span-2">
           <label class="block text-xs font-medium text-gray-600 mb-1">Notes</label>
           <textarea name="notes" rows="2" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-400"></textarea>
-        </div>
-        <div class="col-span-2">
-          <label class="block text-xs font-medium text-gray-600 mb-1">Photo</label>
-          <input type="file" name="image" accept="image/*" class="text-sm"/>
         </div>
       </div>
       <div class="flex gap-2 pt-2">
@@ -241,6 +257,17 @@ function resetFilters() {
 });
 document.getElementById('filter-search').addEventListener('input', applyFilters);
 
+function previewPhoto(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById('photo-preview-img').src = e.target.result;
+    document.getElementById('photo-preview').classList.remove('hidden');
+  };
+  reader.readAsDataURL(file);
+}
+
 // Add bottle form
 document.getElementById('add-form').addEventListener('submit', async e => {
   e.preventDefault();
@@ -250,6 +277,9 @@ document.getElementById('add-form').addEventListener('submit', async e => {
   btn.textContent = 'Adding…';
   try {
     const fd = new FormData(form);
+    const cam = document.getElementById('photo-camera').files[0];
+    const gal = document.getElementById('photo-gallery').files[0];
+    if (cam || gal) fd.set('image', cam || gal);
     const r = await fetch('/bottles/', {method:'POST', body:fd, credentials:'same-origin'});
     if (!r.ok) { const err = await r.json(); throw new Error(err.detail || 'Failed'); }
     const b = await r.json();
