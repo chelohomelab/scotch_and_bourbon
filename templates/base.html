@@ -3,7 +3,13 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>{% block title %}Scotch &amp; Bourbon{% endblock %}</title>
+  <title>{% block title %}The Whiskey Vault{% endblock %}</title>
+  <link rel="icon" type="image/png" href="/static/images/app-icon.png"/>
+  <link rel="apple-touch-icon" href="/static/images/app-icon.png"/>
+  <link rel="manifest" href="/static/manifest.json"/>
+  <meta name="theme-color" content="#0d0a07"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -17,37 +23,153 @@
     }
   </script>
   <style>
-    body { font-family: 'Segoe UI', system-ui, sans-serif; }
-    .toast { position:fixed; bottom:1.5rem; right:1.5rem; z-index:9999; }
-    .badge-sealed   { background:#dbeafe; color:#1e40af; }
-    .badge-opened   { background:#fef3c7; color:#92400e; }
-    .badge-finished { background:#f3f4f6; color:#374151; }
+    /* ── Background images ───────────────────────────────────── */
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background-color: #0d0a07;
+      background-image: url('/static/images/background.png');
+      background-size: cover;
+      background-position: center center;
+      background-repeat: no-repeat;
+      background-attachment: scroll;
+    }
+    @media (max-width: 640px) {
+      body {
+        background-image: url('/static/images/phone-background.png');
+        background-position: center top;
+      }
+    }
+
+    /* ── Dark glass cards ────────────────────────────────────── */
+    .bg-white {
+      background: rgba(14, 10, 6, 0.88) !important;
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+    }
+
+    /* ── Amber text → gold ───────────────────────────────────── */
+    .text-amber-900 { color: #e8c060 !important; }
+    .text-amber-800 { color: #d4a843 !important; }
+    .text-amber-700 { color: #c8922a !important; }
+    .text-amber-600 { color: #c8922a !important; }
+
+    /* ── Amber button / panel backgrounds ────────────────────── */
+    .bg-amber-800                    { background-color: #7a4e10 !important; }
+    .bg-amber-700                    { background-color: #8a5e18 !important; }
+    .bg-amber-600                    { background-color: #c8922a !important; }
+    .bg-amber-100                    { background-color: #2a1c0c !important; }
+    .bg-amber-50                     { background-color: #120d07 !important; }
+    .hover\:bg-amber-800:hover       { background-color: #8a5820 !important; }
+    .hover\:bg-amber-700:hover       { background-color: #9a6828 !important; }
+    .hover\:bg-amber-600:hover       { background-color: #d4a030 !important; }
+    .hover\:bg-amber-200:hover       { background-color: #3d2c1c !important; }
+    .hover\:bg-amber-50:hover        { background-color: #1e1610 !important; }
+
+    /* ── Amber borders ───────────────────────────────────────── */
+    .border-amber-100 { border-color: #3d2c1c !important; }
+    .border-amber-800 { border-color: #7a4e10 !important; }
+
+    /* ── Gray text → warm cream ──────────────────────────────── */
+    .text-gray-800 { color: #f0e0c0 !important; }
+    .text-gray-700 { color: #e0d0a8 !important; }
+    .text-gray-600 { color: #b09060 !important; }
+    .text-gray-500 { color: #9a7850 !important; }
+    .text-gray-400 { color: #7a5c38 !important; }
+
+    /* ── Gray borders → warm dark ────────────────────────────── */
+    .border-gray-100 { border-color: #2e2016 !important; }
+    .border-gray-200 { border-color: #3d2c1c !important; }
+    .border-gray-300 { border-color: #4a3520 !important; }
+    .border-gray-400 { border-color: #5a4028 !important; }
+    .divide-y > * + * { border-top-color: #3d2c1c !important; }
+
+    /* ── Gray backgrounds ────────────────────────────────────── */
+    .bg-gray-50                   { background-color: #120d07 !important; }
+    .bg-gray-100                  { background-color: #1c1510 !important; }
+    .hover\:bg-gray-50:hover      { background-color: #1e1610 !important; }
+
+    /* ── Red / green for priority / verdict badges ───────────── */
+    .bg-red-100                   { background-color: #2a1010 !important; }
+    .border-red-100               { border-color: #4a1a1a !important; }
+    .border-red-200               { border-color: #5a2020 !important; }
+    .hover\:bg-red-50:hover       { background-color: #200a0a !important; }
+    .hover\:bg-red-200:hover      { background-color: #3a1515 !important; }
+    .bg-yellow-100                { background-color: #2a2010 !important; }
+    .text-yellow-700              { color: #d4b040 !important; }
+    .bg-green-100                 { background-color: #0a2010 !important; }
+    .text-green-700               { color: #60c070 !important; }
+    .hover\:bg-green-200:hover    { background-color: #0a3015 !important; }
+
+    /* ── Form inputs ─────────────────────────────────────────── */
+    input:not([type=checkbox]):not([type=file]),
+    select, textarea {
+      background-color: rgba(10, 7, 4, 0.88) !important;
+      color: #f0e0c0 !important;
+      border-color: #4a3520 !important;
+    }
+    input::placeholder, textarea::placeholder { color: #7a5c38 !important; }
+    option { background: #1a1208; color: #f0e0c0; }
+
+    /* ── Status badges ───────────────────────────────────────── */
+    .badge-sealed   { background: #0d1e35; color: #6aade0; }
+    .badge-opened   { background: #2a1805; color: #e8b84b; }
+    .badge-finished { background: #1c1c1c; color: #848484; }
+
+    /* ── Toast ───────────────────────────────────────────────── */
+    .toast { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 9999; }
   </style>
 </head>
-<body class="bg-amber-50 min-h-screen">
+<body class="min-h-screen">
 
 <!-- Navbar -->
-<nav class="bg-amber-900 text-white shadow-lg">
+<nav style="background:rgba(7,5,2,0.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid #3d2c1c;" class="sticky top-0 z-40 shadow-lg">
   <div class="max-w-7xl mx-auto px-4 flex items-center justify-between h-14">
-    <a href="/" class="flex items-center gap-2 font-bold text-lg tracking-wide hover:text-amber-200 transition">
-      🥃 Scotch &amp; Bourbon
+    <!-- Brand: always visible -->
+    <a href="/" class="flex items-center gap-2 hover:opacity-80 transition min-w-0">
+      <img src="/static/images/logo.png" alt="The Whiskey Vault" class="h-9 w-9 flex-shrink-0 object-contain"/>
+      <span class="font-bold text-sm sm:text-base tracking-wide whitespace-nowrap" style="color:#e8c060;">The Whiskey Vault</span>
     </a>
-    <div class="flex items-center gap-1 text-sm">
-      <a href="/" class="px-3 py-1.5 rounded hover:bg-amber-800 transition {% if request.url.path == '/' %}bg-amber-800{% endif %}">Dashboard</a>
-      <a href="/inventory" class="px-3 py-1.5 rounded hover:bg-amber-800 transition {% if '/inventory' in request.url.path %}bg-amber-800{% endif %}">Cellar</a>
-      <a href="/wishlist" class="px-3 py-1.5 rounded hover:bg-amber-800 transition {% if '/wishlist' in request.url.path %}bg-amber-800{% endif %}">Wish List</a>
+    <!-- Desktop nav (hidden on mobile) -->
+    <div class="hidden sm:flex items-center gap-1 text-sm">
+      <a href="/dashboard" style="color:#c8a870;" class="px-3 py-1.5 rounded transition hover:bg-white/10 {% if request.url.path == '/dashboard' %}bg-white/10{% endif %}">Dashboard</a>
+      <a href="/inventory" style="color:#c8a870;" class="px-3 py-1.5 rounded transition hover:bg-white/10 {% if '/inventory' in request.url.path %}bg-white/10{% endif %}">Cellar</a>
+      <a href="/wishlist" style="color:#c8a870;" class="px-3 py-1.5 rounded transition hover:bg-white/10 {% if '/wishlist' in request.url.path %}bg-white/10{% endif %}">Wish List</a>
       {% if user and user.is_admin %}
       <div class="relative group">
-        <button class="px-3 py-1.5 rounded hover:bg-amber-800 transition flex items-center gap-1">Admin ▾</button>
-        <div class="absolute right-0 top-full mt-1 bg-white text-gray-800 rounded shadow-lg min-w-40 hidden group-hover:block z-50">
-          <a href="/admin/users" class="block px-4 py-2 hover:bg-amber-50 text-sm">👥 Users</a>
-          <a href="/admin/trash" class="block px-4 py-2 hover:bg-amber-50 text-sm">🗑️ Trash</a>
+        <button style="color:#c8a870;" class="px-3 py-1.5 rounded transition hover:bg-white/10 flex items-center gap-1">Admin ▾</button>
+        <div class="absolute right-0 top-full mt-1 rounded shadow-lg min-w-40 hidden group-hover:block z-50" style="background:rgba(12,8,4,0.96);border:1px solid #3d2c1c;">
+          <a href="/admin/users" style="color:#c8a870;" class="block px-4 py-2 text-sm hover:bg-white/10">👥 Users</a>
+          <a href="/admin/trash" style="color:#c8a870;" class="block px-4 py-2 text-sm hover:bg-white/10">🗑️ Trash</a>
         </div>
       </div>
       {% endif %}
       <form method="post" action="/logout" class="ml-2">
-        <button type="submit" class="px-3 py-1.5 rounded bg-amber-700 hover:bg-amber-600 transition text-sm">Logout</button>
+        <button type="submit" class="px-3 py-1.5 rounded text-sm transition hover:opacity-80" style="background:rgba(122,78,16,0.65);color:#f0e0c0;border:1px solid #7a4e10;">Logout</button>
       </form>
+    </div>
+    <!-- Mobile hamburger button -->
+    <button onclick="document.getElementById('nav-mobile').classList.toggle('hidden')"
+      class="sm:hidden p-2 rounded hover:bg-white/10 transition" style="color:#e8c060;" aria-label="Open menu">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
+      </svg>
+    </button>
+  </div>
+  <!-- Mobile dropdown menu -->
+  <div id="nav-mobile" class="hidden sm:hidden" style="border-top:1px solid #3d2c1c;background:rgba(7,5,2,0.97);">
+    <div class="px-4 py-2 flex flex-col gap-0.5">
+      <a href="/dashboard" style="color:#c8a870;" class="px-4 py-3 rounded-lg hover:bg-white/10 transition text-sm font-medium {% if request.url.path == '/dashboard' %}bg-white/10{% endif %}">Dashboard</a>
+      <a href="/inventory" style="color:#c8a870;" class="px-4 py-3 rounded-lg hover:bg-white/10 transition text-sm font-medium {% if '/inventory' in request.url.path %}bg-white/10{% endif %}">Cellar</a>
+      <a href="/wishlist" style="color:#c8a870;" class="px-4 py-3 rounded-lg hover:bg-white/10 transition text-sm font-medium {% if '/wishlist' in request.url.path %}bg-white/10{% endif %}">Wish List</a>
+      {% if user and user.is_admin %}
+      <a href="/admin/users" style="color:#c8a870;" class="px-4 py-3 rounded-lg hover:bg-white/10 transition text-sm font-medium">👥 Users</a>
+      <a href="/admin/trash" style="color:#c8a870;" class="px-4 py-3 rounded-lg hover:bg-white/10 transition text-sm font-medium">🗑️ Trash</a>
+      {% endif %}
+      <div style="border-top:1px solid #3d2c1c;" class="mt-1 pt-1">
+        <form method="post" action="/logout">
+          <button type="submit" class="w-full text-left px-4 py-3 rounded-lg hover:bg-white/10 transition text-sm font-medium" style="color:#c8a870;">Logout</button>
+        </form>
+      </div>
     </div>
   </div>
 </nav>
@@ -55,7 +177,7 @@
 <!-- Flash / Toast notifications -->
 <div id="toast-container" class="toast flex flex-col gap-2"></div>
 
-<main class="max-w-7xl mx-auto px-4 py-6">
+<main class="max-w-7xl mx-auto px-3 sm:px-4 py-3 sm:py-6">
   {% block content %}{% endblock %}
 </main>
 

@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+
+# Database (runtime data — not source)
+data/cellar.db
+
+# Uploaded & cached images (runtime data)
+static/uploads/
+
+# Secrets / local config
+.env
+*.env
+
+# OS
+.DS_Store
+Thumbs.db

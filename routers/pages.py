@@ -29,6 +29,14 @@ REGIONS = [
 
 
 @router.get("/", response_class=HTMLResponse)
+async def landing(request: Request):
+    return templates.TemplateResponse("landing.html", {
+        "request": request,
+        "user": request.state.user,
+    })
+
+
+@router.get("/dashboard", response_class=HTMLResponse)
 async def dashboard(request: Request, db: Session = Depends(get_db)):
     total = db.query(models.Bottle).filter(models.Bottle.is_deleted == False).count()
     sealed = db.query(models.Bottle).filter(models.Bottle.is_deleted == False, models.Bottle.status == "sealed").count()

@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 
 import database as models
 from dependencies import get_db
+from whiskey_kb import enrich as kb_enrich  # [KB] remove this line to disable KB enrichment
 
 router = APIRouter(prefix="/barcode", tags=["barcode"])
 
@@ -138,12 +139,14 @@ def _parse_brand(api_brand: str, title: str) -> str | None:
     return None
 
 
-def _download_upc_image(upc: str, img_url: str) -> str | None:
+def _download_upc_image(upc: str, img_url: str, index: int = 0) -> str | None:
     try:
         dest_dir = "static/uploads/upc_cache"
         os.makedirs(dest_dir, exist_ok=True)
         ext = os.path.splitext(urllib.parse.urlsplit(img_url).path)[1].lower() or ".jpg"
-        filename = f"upc_{upc}{ext}"
+        # index=0 keeps the original naming (upc_XXXX.jpg) for backward compat
+        suffix = "" if index == 0 else f"_{index + 1}"
+        filename = f"upc_{upc}{suffix}{ext}"
         dest = os.path.join(dest_dir, filename)
         if os.path.exists(dest):
             return f"static/uploads/upc_cache/{filename}"
@@ -154,6 +157,17 @@ def _download_upc_image(upc: str, img_url: str) -> str | None:
         return f"static/uploads/upc_cache/{filename}"
     except Exception:
         return None
+
+
+def _get_all_cached_image_paths(upc: str) -> list[str]:
+    cache_dir = "static/uploads/upc_cache"
+    if not os.path.exists(cache_dir):
+        return []
+    return sorted(
+        f"static/uploads/upc_cache/{f}"
+        for f in os.listdir(cache_dir)
+        if f.startswith(f"upc_{upc}") and not f.endswith(".tmp")
+    )
 
 
 def upsert_upc_cache(
@@ -197,11 +211,12 @@ def upsert_upc_cache(
 
 
 def _cache_to_response(c: models.UpcCache) -> dict:
+    image_paths = _get_all_cached_image_paths(c.upc)
     return {
         "upc": c.upc, "title": c.title, "brand": c.brand, "name": c.name,
         "whiskey_type": c.whiskey_type, "region": c.region, "country": c.country,
         "age_statement": c.age_statement, "abv": c.abv, "volume_ml": c.volume_ml,
-        "image_path": c.image_path, "source": "cache",
+        "image_path": c.image_path, "image_paths": image_paths, "source": "cache",
     }
 
 
@@ -239,14 +254,28 @@ def lookup_barcode(upc: str, db: Session = Depends(get_db)):
     # 1. Local cache
     cached = db.query(models.UpcCache).filter(models.UpcCache.upc == upc).first()
     if cached:
-        return _cache_to_response(cached)
+        resp = _cache_to_response(cached)
+        # [KB] Enrich cached results that are missing fields (3 lines — remove to disable)
+        _kb = kb_enrich(resp.get("brand"), resp.get("title"))
+        for f in ("whiskey_type", "region", "country", "abv"):
+            if not resp.get(f): resp[f] = _kb.get(f)
+        return resp
 
     # 2. UPC Item DB
+    suggested_price = None
     item = _lookup_upcitemdb(upc)
     if item:
         title = item.get("title") or item.get("description") or ""
         raw_brand = html.unescape(item.get("brand") or "")
         api_images = item.get("images") or []
+        for offer in (item.get("offers") or []):
+            raw_price = offer.get("price") or offer.get("list_price")
+            if raw_price:
+                try:
+                    suggested_price = float(str(raw_price).replace("$", "").replace(",", "").strip())
+                    break
+                except ValueError:
+                    pass
     else:
         # 3. Open Food Facts fallback
         off = _lookup_openfoodfacts(upc)
@@ -272,11 +301,22 @@ def lookup_barcode(upc: str, db: Session = Depends(get_db)):
         name = name_raw if name_raw else None
 
     image_path = None
-    for img_url in api_images:
+    image_paths = []
+    for i, img_url in enumerate(api_images[:4]):  # download up to 4 images
         if img_url:
-            image_path = _download_upc_image(upc, img_url)
-            if image_path:
-                break
+            path = _download_upc_image(upc, img_url, index=i)
+            if path:
+                image_paths.append(path)
+                if image_path is None:
+                    image_path = path
+
+    # [KB] Enrich missing fields from built-in brand knowledge base.
+    # Only fills fields still None after API parsing. Delete these 4 lines to disable.
+    _kb = kb_enrich(brand, title)
+    if not whiskey_type: whiskey_type = _kb.get("whiskey_type")
+    if not region:        region       = _kb.get("region")
+    if not country:       country      = _kb.get("country")
+    if abv is None:       abv          = _kb.get("abv")
 
     upsert_upc_cache(
         db, upc, title=title, brand=brand, name=name,
@@ -288,5 +328,6 @@ def lookup_barcode(upc: str, db: Session = Depends(get_db)):
         "upc": upc, "title": title, "brand": brand, "name": name,
         "whiskey_type": whiskey_type, "region": region, "country": country,
         "age_statement": age, "abv": abv, "volume_ml": volume_ml,
-        "image_path": image_path, "source": "api",
+        "image_path": image_path, "image_paths": image_paths,
+        "suggested_price": suggested_price, "source": "api",
     }

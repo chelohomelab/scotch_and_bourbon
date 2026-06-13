@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 import database as models
 from dependencies import get_db, save_uploaded_file
 from schemas import BottlePatchPayload, SoldPayload
+from whiskey_kb import save_correction as kb_save_correction  # [KB]
 
 router = APIRouter(prefix="/bottles", tags=["bottles"])
 
@@ -36,6 +37,8 @@ def _bottle_dict(b: models.Bottle) -> dict:
         "is_deleted": b.is_deleted,
         "is_sold": b.is_sold,
         "price_sold": b.price_sold,
+        "is_gift": b.is_gift,
+        "is_collectible": b.is_collectible,
     }
 
 
@@ -79,10 +82,18 @@ async def add_bottle(
     upc: Optional[str] = Form(default=None),
     status: str = Form(default="sealed"),
     notes: Optional[str] = Form(default=None),
+    is_gift: Optional[bool] = Form(default=False),
+    is_collectible: Optional[bool] = Form(default=False),
     image: Optional[UploadFile] = File(default=None),
+    existing_image_path: Optional[str] = Form(default=None),
     db: Session = Depends(get_db),
 ):
-    img_path = await save_uploaded_file(image, "bottle")
+    if image and getattr(image, "filename", None):
+        img_path = await save_uploaded_file(image, "bottle")
+    elif existing_image_path:
+        img_path = existing_image_path
+    else:
+        img_path = None
     b = models.Bottle(
         brand=brand.strip(),
         name=name.strip() if name else None,
@@ -98,6 +109,8 @@ async def add_bottle(
         upc=upc or None,
         status=status or "sealed",
         notes=notes or None,
+        is_gift=bool(is_gift),
+        is_collectible=bool(is_collectible),
         image_path_1=img_path,
     )
     db.add(b)
@@ -119,10 +132,15 @@ def patch_bottle(bottle_id: int, payload: BottlePatchPayload, db: Session = Depe
     b = db.query(models.Bottle).filter(models.Bottle.id == bottle_id).first()
     if not b:
         raise HTTPException(404, "Not found")
-    for field, value in payload.model_dump(exclude_unset=True).items():
+    updates = payload.model_dump(exclude_unset=True)
+    for field, value in updates.items():
         setattr(b, field, value)
     db.commit()
     db.refresh(b)
+    # [KB] Learn from user corrections to enrichable fields
+    kb_fields = {f: updates[f] for f in ("whiskey_type", "region", "country", "abv") if f in updates}
+    if kb_fields:
+        kb_save_correction(b.brand, kb_fields)
     return _bottle_dict(b)
 
 

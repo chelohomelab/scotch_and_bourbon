@@ -1,0 +1,4 @@
+{
+  "_note": "Brand-level corrections that override whiskey_kb.py. Keys are lowercase brand names matching BRAND_KB. Edit manually or let the app learn from saved bottle corrections.",
+  "balvenie": {"abv": 43.0}
+}

@@ -39,6 +39,8 @@ class Bottle(Base):
     is_deleted = Column(Boolean, default=False)
     is_sold = Column(Boolean, default=False)
     price_sold = Column(Float)
+    is_gift = Column(Boolean, default=False)
+    is_collectible = Column(Boolean, default=False)
 
     tastings = relationship("Tasting", back_populates="bottle", cascade="all, delete-orphan")
 
@@ -154,6 +156,8 @@ def init_db():
             ("bottles", "price_sold", "ALTER TABLE bottles ADD COLUMN price_sold REAL"),
             ("bottles", "image_path_2", "ALTER TABLE bottles ADD COLUMN image_path_2 TEXT"),
             ("bottles", "country", "ALTER TABLE bottles ADD COLUMN country TEXT"),
+            ("bottles", "is_gift", "ALTER TABLE bottles ADD COLUMN is_gift BOOLEAN DEFAULT 0"),
+            ("bottles", "is_collectible", "ALTER TABLE bottles ADD COLUMN is_collectible BOOLEAN DEFAULT 0"),
         ]
         for table, col, sql in migrations:
             if not _col_exists(db, table, col):

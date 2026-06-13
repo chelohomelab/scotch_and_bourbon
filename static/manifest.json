@@ -1,0 +1,17 @@
+{
+  "name": "The Whiskey Vault",
+  "short_name": "Whiskey Vault",
+  "description": "Your personal whiskey cellar",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0d0a07",
+  "theme_color": "#c8922a",
+  "icons": [
+    {
+      "src": "/static/images/app-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

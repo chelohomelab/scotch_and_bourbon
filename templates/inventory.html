@@ -97,12 +97,36 @@
 
 <!-- Add Bottle Modal -->
 <div id="add-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-screen overflow-y-auto">
-    <div class="flex items-center justify-between p-5 border-b">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[92vh] overflow-y-auto">
+    <div class="flex items-center justify-between p-5 border-b border-amber-100 sticky top-0 bg-white z-10" style="background:rgba(14,10,6,0.97);">
       <h2 class="font-bold text-amber-900 text-lg">Add Bottle</h2>
-      <button onclick="document.getElementById('add-modal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+      <button onclick="closeAddModal()" class="text-gray-400 hover:text-gray-600 text-xl">✕</button>
     </div>
-    <form id="add-form" enctype="multipart/form-data" class="p-5 space-y-4">
+    <form id="add-form" enctype="multipart/form-data" class="p-4 sm:p-5 space-y-3">
+
+      <!-- ── UPC Scan Bar ────────────────────────────────────── -->
+      <div class="rounded-xl p-3" style="background:rgba(200,146,42,0.08);border:1px solid #4a3520;">
+        <div class="text-xs font-semibold mb-2" style="color:#e8c060;">Barcode / UPC</div>
+        <input type="text" id="add-upc" name="upc" placeholder="Enter or scan UPC to auto-fill…"
+          class="w-full border rounded-lg px-3 py-2 text-sm mb-2 focus:ring-2 focus:ring-amber-400"/>
+        <div class="grid grid-cols-2 gap-2">
+          <button type="button" onclick="startScanner()"
+            class="flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-semibold hover:opacity-80 transition"
+            style="background:rgba(122,78,16,0.6);color:#f0e0c0;border:1px solid #7a4e10;">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 9V5a2 2 0 012-2h2M3 15v4a2 2 0 002 2h2m10-18h2a2 2 0 012 2v4m0 6v4a2 2 0 01-2 2h-2M8 3h.01M12 3h.01M8 21h.01M12 21h.01"/>
+            </svg>
+            Scan Barcode
+          </button>
+          <button type="button" onclick="autofillFromUpc()"
+            class="flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-semibold hover:opacity-80 transition"
+            style="background:rgba(40,28,16,0.8);color:#c8a060;border:1px solid #4a3520;">
+            🔍 Lookup
+          </button>
+        </div>
+      </div>
+
+      <!-- ── Fields grid ────────────────────────────────────── -->
       <div class="grid grid-cols-2 gap-3">
         <div class="col-span-2">
           <label class="block text-xs font-medium text-gray-600 mb-1">Brand <span class="text-red-500">*</span></label>
@@ -153,13 +177,11 @@
           </select>
         </div>
         <div>
-          <label class="block text-xs font-medium text-gray-600 mb-1">Price Paid ($)</label>
-          <input type="number" name="price_paid" step="0.01" min="0"
-            class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-400"/>
-        </div>
-        <div>
-          <label class="block text-xs font-medium text-gray-600 mb-1">Date Acquired</label>
-          <input type="date" name="date_acquired"
+          <label class="block text-xs font-medium text-gray-600 mb-1">
+            Price Paid ($)
+            <span id="suggested-price-hint" class="hidden ml-1 text-xs font-normal" style="color:#9a7850;"></span>
+          </label>
+          <input type="number" id="price-paid-input" name="price_paid" step="0.01" min="0"
             class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-400"/>
         </div>
         <div>
@@ -170,32 +192,76 @@
             <option value="finished">Finished</option>
           </select>
         </div>
-        <div>
-          <label class="block text-xs font-medium text-gray-600 mb-1">UPC Barcode</label>
-          <div class="flex gap-1">
-            <input type="text" name="upc" id="add-upc" placeholder="Scan or type…"
-              class="flex-1 border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-400"/>
-            <button type="button" onclick="autofillFromUpc()"
-              class="px-2 py-1.5 bg-amber-100 hover:bg-amber-200 rounded-lg text-xs font-medium text-amber-800">Lookup</button>
-          </div>
-        </div>
         <div class="col-span-2">
           <label class="block text-xs font-medium text-gray-600 mb-1">Notes</label>
           <textarea name="notes" rows="2" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-400"></textarea>
         </div>
-        <div class="col-span-2">
-          <label class="block text-xs font-medium text-gray-600 mb-1">Photo</label>
-          <input type="file" name="image" accept="image/*" class="text-sm"/>
+
+        <!-- ── Checkboxes ────────────────────────────── -->
+        <div class="col-span-2 flex gap-4 flex-wrap">
+          <label class="flex items-center gap-2 cursor-pointer py-2 px-3 rounded-lg hover:bg-white/5 transition" style="border:1px solid #3d2c1c;">
+            <input type="checkbox" name="is_gift" value="true" class="rounded accent-amber-600 w-4 h-4"/>
+            <span class="text-sm" style="color:#c8a060;">🎁 Gift / Present</span>
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer py-2 px-3 rounded-lg hover:bg-white/5 transition" style="border:1px solid #3d2c1c;">
+            <input type="checkbox" name="is_collectible" value="true" class="rounded accent-amber-600 w-4 h-4"/>
+            <span class="text-sm" style="color:#c8a060;">🏆 Collection</span>
+          </label>
         </div>
       </div>
-      <div class="flex gap-2 pt-2">
-        <button type="submit" class="flex-1 bg-amber-800 hover:bg-amber-700 text-white font-semibold py-2 rounded-lg transition text-sm">
+
+      <!-- ── Photo section ──────────────────────────────────── -->
+      <div class="rounded-xl p-3" style="background:rgba(200,146,42,0.05);border:1px solid #3d2c1c;">
+        <div class="text-xs font-semibold mb-2" style="color:#9a7850;">Add Photo (optional)</div>
+        <div class="grid grid-cols-2 gap-2">
+          <label class="flex items-center justify-center gap-1.5 cursor-pointer py-2.5 rounded-lg text-xs font-semibold hover:opacity-80 transition"
+            style="background:rgba(122,78,16,0.6);color:#f0e0c0;border:1px solid #7a4e10;">
+            📷 Take Photo
+            <input type="file" id="photo-camera" accept="image/*" capture="environment" class="hidden" onchange="onCameraPhoto(this)"/>
+          </label>
+          <button type="button" id="api-photos-btn" onclick="toggleApiPhotos()"
+            class="flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-semibold hover:opacity-80 transition"
+            style="background:rgba(40,28,16,0.8);color:#c8a060;border:1px solid #4a3520;">
+            🖼️ Photos
+          </button>
+        </div>
+        <!-- API photo picker -->
+        <div id="api-photos-panel" class="hidden mt-2">
+          <div id="no-api-photos-msg" class="text-xs py-2 text-center" style="color:#7a5c38;">
+            Scan or look up a UPC first to see product photos.
+          </div>
+          <div id="api-photos-grid" class="hidden flex gap-2 flex-wrap justify-center"></div>
+        </div>
+        <!-- Preview -->
+        <div id="photo-preview" class="hidden mt-2 text-center">
+          <img id="photo-preview-img" class="h-28 rounded-lg object-cover mx-auto"/>
+          <div class="text-xs mt-1" style="color:#9a7850;">Photo ready ·
+            <button type="button" onclick="clearPhoto()" class="underline hover:opacity-70" style="color:#7a5c38;">Remove</button>
+          </div>
+        </div>
+        <input type="hidden" id="existing-image-path" name="existing_image_path"/>
+      </div>
+
+      <div class="flex gap-2 pt-1">
+        <button type="submit" class="flex-1 bg-amber-800 hover:bg-amber-700 text-white font-semibold py-2.5 rounded-lg transition text-sm">
           Add to Cellar
         </button>
-        <button type="button" onclick="document.getElementById('add-modal').classList.add('hidden')"
+        <button type="button" onclick="closeAddModal()"
           class="px-4 py-2 border rounded-lg text-sm text-gray-600 hover:bg-gray-50">Cancel</button>
       </div>
     </form>
+  </div>
+</div>
+
+<!-- Barcode Scanner Overlay -->
+<div id="scanner-overlay" class="hidden fixed inset-0 bg-black/95 z-[60] flex flex-col items-center justify-center p-6">
+  <div class="w-full max-w-sm">
+    <p class="text-center text-sm mb-4" style="color:#e8c060;">Point camera at the barcode on the bottle</p>
+    <div id="scanner-view" class="w-full rounded-xl overflow-hidden" style="min-height:220px;background:#111;"></div>
+    <button onclick="stopScanner()" class="mt-4 w-full py-3 rounded-xl text-sm font-semibold transition hover:opacity-80"
+      style="background:rgba(122,78,16,0.8);color:#f0e0c0;border:1px solid #7a4e10;">
+      Cancel
+    </button>
   </div>
 </div>
 
@@ -241,6 +307,75 @@ function resetFilters() {
 });
 document.getElementById('filter-search').addEventListener('input', applyFilters);
 
+let _apiPhotoPaths = [];
+
+function onCameraPhoto(input) {
+  const file = input.files[0];
+  if (!file) return;
+  // Camera wins — clear any API photo selection
+  document.getElementById('existing-image-path').value = '';
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById('photo-preview-img').src = e.target.result;
+    document.getElementById('photo-preview').classList.remove('hidden');
+    document.getElementById('api-photos-panel').classList.add('hidden');
+  };
+  reader.readAsDataURL(file);
+}
+
+function toggleApiPhotos() {
+  const panel = document.getElementById('api-photos-panel');
+  panel.classList.toggle('hidden');
+  if (_apiPhotoPaths.length > 0) {
+    document.getElementById('no-api-photos-msg').classList.add('hidden');
+    document.getElementById('api-photos-grid').classList.remove('hidden');
+  } else {
+    document.getElementById('no-api-photos-msg').classList.remove('hidden');
+    document.getElementById('api-photos-grid').classList.add('hidden');
+  }
+}
+
+function selectApiPhoto(path) {
+  document.getElementById('existing-image-path').value = path;
+  document.getElementById('photo-preview-img').src = '/' + path;
+  document.getElementById('photo-preview').classList.remove('hidden');
+  document.getElementById('api-photos-panel').classList.add('hidden');
+  // Clear camera input so it doesn't compete
+  document.getElementById('photo-camera').value = '';
+}
+
+function clearPhoto() {
+  document.getElementById('existing-image-path').value = '';
+  document.getElementById('photo-camera').value = '';
+  document.getElementById('photo-preview').classList.add('hidden');
+  document.getElementById('photo-preview-img').src = '';
+}
+
+function _populateApiPhotos(paths) {
+  _apiPhotoPaths = paths || [];
+  const btn = document.getElementById('api-photos-btn');
+  btn.textContent = _apiPhotoPaths.length > 0 ? `🖼️ Photos (${_apiPhotoPaths.length})` : '🖼️ Photos';
+  const grid = document.getElementById('api-photos-grid');
+  grid.innerHTML = '';
+  for (const path of _apiPhotoPaths) {
+    const img = document.createElement('img');
+    img.src = '/' + path;
+    img.alt = 'Product photo';
+    img.className = 'h-24 w-20 object-cover rounded-lg cursor-pointer hover:opacity-80 transition';
+    img.style.cssText = 'border:2px solid #4a3520;flex-shrink:0;';
+    img.onclick = () => selectApiPhoto(path);
+    grid.appendChild(img);
+  }
+}
+
+function closeAddModal() {
+  document.getElementById('add-modal').classList.add('hidden');
+  // Reset photo state
+  clearPhoto();
+  _populateApiPhotos([]);
+  document.getElementById('api-photos-panel').classList.add('hidden');
+}
+
 // Add bottle form
 document.getElementById('add-form').addEventListener('submit', async e => {
   e.preventDefault();
@@ -250,6 +385,14 @@ document.getElementById('add-form').addEventListener('submit', async e => {
   btn.textContent = 'Adding…';
   try {
     const fd = new FormData(form);
+    const cam = document.getElementById('photo-camera').files[0];
+    // Camera takes priority; if no camera photo, existing_image_path (API photo) stays in fd
+    if (cam) {
+      fd.set('image', cam);
+      fd.delete('existing_image_path');
+    } else if (!document.getElementById('existing-image-path').value) {
+      fd.delete('existing_image_path');
+    }
     const r = await fetch('/bottles/', {method:'POST', body:fd, credentials:'same-origin'});
     if (!r.ok) { const err = await r.json(); throw new Error(err.detail || 'Failed'); }
     const b = await r.json();
@@ -276,10 +419,63 @@ async function autofillFromUpc() {
     set('age_statement', data.age_statement);
     set('abv', data.abv);
     set('volume_ml', data.volume_ml);
-    showToast('Autofilled from barcode!');
+    // Pre-fill price from online if found and field is empty
+    if (data.suggested_price) {
+      const priceEl = document.getElementById('price-paid-input');
+      if (!priceEl.value) priceEl.value = data.suggested_price.toFixed(2);
+      const hint = document.getElementById('suggested-price-hint');
+      hint.textContent = `(online: $${data.suggested_price.toFixed(2)})`;
+      hint.classList.remove('hidden');
+    }
+    // Populate API photo picker
+    _populateApiPhotos(data.image_paths || (data.image_path ? [data.image_path] : []));
+    if (_apiPhotoPaths.length > 0) showToast(`Autofilled · ${_apiPhotoPaths.length} photo(s) available`);
+    else showToast('Autofilled from barcode!');
   } catch(err) {
     showToast(err.message, 'error');
   }
+}
+
+// ── Barcode scanner ───────────────────────────────────────────
+let scannerInstance = null;
+
+async function startScanner() {
+  document.getElementById('scanner-overlay').classList.remove('hidden');
+  try {
+    if (typeof Html5Qrcode === 'undefined') {
+      await loadScript('https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js');
+    }
+    scannerInstance = new Html5Qrcode('scanner-view');
+    await scannerInstance.start(
+      {facingMode: 'environment'},
+      {fps: 12, qrbox: {width: 280, height: 110}},
+      (decoded) => {
+        document.getElementById('add-upc').value = decoded;
+        stopScanner();
+        autofillFromUpc();
+      },
+      () => {}
+    );
+  } catch(err) {
+    showToast('Camera error: ' + (err.message || err), 'error');
+    stopScanner();
+  }
+}
+
+function stopScanner() {
+  document.getElementById('scanner-overlay').classList.add('hidden');
+  if (scannerInstance) {
+    scannerInstance.stop().catch(() => {});
+    scannerInstance = null;
+  }
+}
+
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = src; s.onload = resolve; s.onerror = reject;
+    document.head.appendChild(s);
+  });
 }
 </script>
 {% endblock %}
